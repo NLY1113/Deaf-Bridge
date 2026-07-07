@@ -1,24 +1,33 @@
+import os
 from flask import Flask, render_template, request, jsonify
 import joblib
 import numpy as np
-import os
 import json
 import pandas as pd
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'team_brilliant')
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "sign_model.pkl")
 SCALER_PATH = os.path.join(BASE_DIR, "scaler.pkl")
 CSV_FILE = os.path.join(BASE_DIR, "normalized_sign_data.csv")
 
-if os.path.exists(MODEL_PATH) and os.path.exists(SCALER_PATH):
-    model = joblib.load(MODEL_PATH)
-    scaler = joblib.load(SCALER_PATH)
-else:
-    model = None
-    scaler = None
+def get_model():
+    if not hasattr(get_model, "model"):
+        if os.path.exists(MODEL_PATH):
+            get_model.model = joblib.load(MODEL_PATH)
+        else:
+            get_model.model = None
+    return get_model.model
+
+def get_scaler():
+    if not hasattr(get_scaler, "scaler"):
+        if os.path.exists(SCALER_PATH):
+            get_scaler.scaler = joblib.load(SCALER_PATH)
+        else:
+            get_scaler.scaler = None
+    return get_scaler.scaler
 
 @app.route('/')
 def index():
@@ -38,19 +47,18 @@ def voice_translator():
 
 @app.route('/translate-sign', methods=['POST'])
 def translate():
+    model = get_model()
+    scaler = get_scaler()
     if model is None or scaler is None:
         return jsonify({"status": "error", "message": "ML Model files not found."})
     try:
         data = request.json
         landmarks_list = data.get('landmarks', [])
-        
         if len(landmarks_list) != 84:
             return jsonify({"status": "error", "message": f"Expected 84 features, got {len(landmarks_list)}"})
-            
         flat_landmarks = np.array(landmarks_list).reshape(1, -1)
         scaled_features = scaler.transform(flat_landmarks)
         prediction = model.predict(scaled_features)[0]
-        
         return jsonify({"status": "success", "translated_text": str(prediction)})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
@@ -59,7 +67,6 @@ def translate():
 def get_sign_sequence():
     data = request.json
     word = data.get('text', '').lower().strip()
-    
     if not word:
         return jsonify({"status": "error", "message": "No text provided."})
 
@@ -76,7 +83,6 @@ def get_sign_sequence():
         try:
             df = pd.read_csv(CSV_FILE, header=None)
             matches = df[df[0].astype(str).str.lower() == word]
-            
             if not matches.empty:
                 sequence = matches.iloc[:, 1:].values.tolist()
                 return jsonify({"status": "success", "sequence": sequence})
