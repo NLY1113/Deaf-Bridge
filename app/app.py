@@ -6,6 +6,7 @@ import json
 import pandas as pd
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'team_brilliant')
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 MODEL_PATH = os.path.join(BASE_DIR, "sign_model.pkl")
