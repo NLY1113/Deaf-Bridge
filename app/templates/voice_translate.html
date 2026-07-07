@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deaf Bridge - Voice Translator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .audio-wave-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 100px;
+        }
+        .bar {
+            width: 8px;
+            height: 20px;
+            background-color: #6366f1;
+            border-radius: 4px;
+            transition: height 0.1s ease;
+        }
+        .listening .bar {
+            animation: bounce 0.6s ease-in-out infinite alternate;
+        }
+        .listening .bar:nth-child(2) { animation-delay: 0.15s; }
+        .listening .bar:nth-child(3) { animation-delay: 0.3s; }
+        .listening .bar:nth-child(4) { animation-delay: 0.45s; }
+
+        @keyframes bounce {
+            0% { height: 20px; background-color: #6366f1; }
+            100% { height: 70px; background-color: #10b981; }
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .button-row button {
+            flex: 1;
+        }
+        #clear-tts-btn {
+            background-color: #4b5563;
+        }
+        #clear-tts-btn:hover {
+            background-color: #374151;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container">
+        <div id="visualizer-box" style="text-align: center; z-index: 3;">
+            <div class="audio-wave-container" id="wave-bars">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+            <p id="status-text" style="font-size: 1.1rem; margin-top: 20px; color: #94a3b8;">Click the button on the right to begin</p>
+        </div>
+    </div>
+
+    <aside id="control-panel">
+        <h2>Voice Translation</h2>
+        <h2 id="translation-heading" style="color: #10b981;">Waiting for audio...</h2>
+        
+        <div class="control-group">
+            <h3>Speech Controls</h3>
+            <button id="listen-btn">🎤 Start Listening</button>
+        </div>
+
+        <div class="control-group">
+            <h3>Live Transcript</h3>
+            <div id="transcript-output" style="background: #1a1a1e; border: 1px solid #3d3d4a; padding: 12px; border-radius: 6px; min-height: 100px; color: #f1f5f9; font-size: 0.95rem; line-height: 1.4; overflow-y: auto;">
+                Your translated spoken text will appear here in real-time...
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Text-to-Voice Tool</h3>
+            <input type="text" id="tts-text-input" placeholder="Type text to speak aloud...">
+            <div class="button-row">
+                <button id="speak-btn">🔊 Speak Text</button>
+                <button id="clear-tts-btn">Clear</button>
+            </div>
+        </div>
+
+        <p style="margin-top: auto; padding-top: 20px; display: flex; flex-direction: column; gap: 12px;">
+            <a href="/" style="color: #6366f1; text-decoration: none; font-weight: bold;">← Back to Main Page</a>
+            <a href="/translator" style="color: #6366f1; text-decoration: none; font-weight: bold;">← Back to AI Translator</a>
+            <a href="/generator" style="color: #6366f1; text-decoration: none; font-weight: bold;">← Back to Sign Generator</a>
+        </p>
+    </aside>
+
+    <script>
+        const listenBtn = document.getElementById('listen-btn');
+        const transcriptOutput = document.getElementById('transcript-output');
+        const translationHeading = document.getElementById('translation-heading');
+        const waveBars = document.getElementById('wave-bars');
+        const statusText = document.getElementById('status-text');
+
+        const ttsTextInput = document.getElementById('tts-text-input');
+        const speakBtn = document.getElementById('speak-btn');
+        const clearTtsBtn = document.getElementById('clear-tts-btn');
+
+        function speakText(text) {
+            if ('speechSynthesis' in window && text.trim().length > 0) {
+                window.speechSynthesis.cancel(); // Stops any ongoing voice queue streams
+                const utterance = new SpeechSynthesisUtterance(text.trim());
+                utterance.lang = 'en-US';
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        speakBtn.addEventListener('click', () => {
+            const message = ttsTextInput.value;
+            if (message) {
+                speakText(message);
+            }
+        });
+
+        clearTtsBtn.addEventListener('click', () => {
+            ttsTextInput.value = "";
+            window.speechSynthesis.cancel();
+        });
+
+        ttsTextInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                const message = ttsTextInput.value;
+                if (message) {
+                    speakText(message);
+                }
+            }
+        });
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+            listenBtn.disabled = true;
+            statusText.innerText = "Speech Recognition not supported in this browser. Try Chrome or Edge.";
+            statusText.style.color = "#ef4444";
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            let isListening = false;
+
+            listenBtn.addEventListener('click', () => {
+                if (!isListening) {
+                    recognition.start();
+                } else {
+                    recognition.stop();
+                }
+            });
+
+            recognition.onstart = () => {
+                isListening = true;
+                listenBtn.innerText = "⏹️ Stop Listening";
+                listenBtn.style.background = "#ef4444";
+                translationHeading.innerText = "Listening actively...";
+                translationHeading.style.color = "#34d399";
+                statusText.innerText = "Speak into your microphone...";
+                waveBars.classList.add('listening');
+                transcriptOutput.innerHTML = "";
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                transcriptOutput.innerHTML = `<span>${finalTranscript}</span><span style="color: #64748b;">${interimTranscript}</span>`;
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech Recognition Error:", event.error);
+                if (event.error === 'not-allowed') {
+                    statusText.innerText = "Microphone access blocked.";
+                    statusText.style.color = "#ef4444";
+                }
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                listenBtn.innerText = "🎤 Start Listening";
+                listenBtn.style.background = "#6366f1";
+                translationHeading.innerText = "Translation paused.";
+                translationHeading.style.color = "#94a3b8";
+                statusText.innerText = "Processing finished.";
+                waveBars.classList.remove('listening');
+            };
+        }
+    </script>
+</body>
+</html>

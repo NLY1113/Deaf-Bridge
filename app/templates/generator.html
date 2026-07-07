@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Deaf Bridge - Sign Generator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <style>
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .button-row button {
+            flex: 1;
+        }
+        #clear-btn {
+            background-color: #4b5563;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #clear-btn:hover {
+            background-color: #374151;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <canvas id="output-canvas" width="640" height="480"></canvas>
+    </div>
+
+    <aside id="control-panel">
+        <h2>Sign Generator</h2>
+        
+        <div class="control-group">
+            <h3>Enter Text to Translate</h3>
+            <input type="text" id="text-input" placeholder="e.g., hello">
+            
+            <div class="button-row">
+                <button id="translate-btn">Generate Sign</button>
+                <button id="clear-btn">Clear Text</button>
+            </div>
+        </div>
+
+        <div id="sign-display" style="margin-top: 20px;">
+            <p id="status-text">Ready to generate...</p>
+        </div>
+
+        <p style="margin-top: 30px; display: flex; flex-direction: column; gap: 12px;">
+            <a href="/" style="color: #6366f1; text-decoration: none; font-weight: bold;">← Back to Main Page</a>
+            <a href="/translator" style="color: #6366f1; text-decoration: none; font-weight: bold;">← Back to AI Translator</a>
+            <a href="/voice-translator" style="color: #10b981; text-decoration: none; font-weight: bold;">Go to Voice Translator 🎤 →</a>
+        </p>
+    </aside>
+
+    <script src="{{ url_for('static', filename='js/generator.js') }}"></script>
+    
+    <script>
+        document.getElementById('translate-btn').addEventListener('click', () => {
+            const text = document.getElementById('text-input').value;
+            if(text) {
+                translateTextToSign(text);
+                document.getElementById('status-text').innerText = "Generating: " + text;
+            }
+        });
+
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            document.getElementById('text-input').value = "";
+            document.getElementById('status-text').innerText = "Ready to generate...";
+            
+            if (typeof playbackInterval !== 'undefined' && playbackInterval) {
+                clearInterval(playbackInterval);
+            }
+            
+            if (typeof ctx !== 'undefined' && typeof drawStaticAvatar === 'function') {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawStaticAvatar();
+            }
+        });
+    </script>
+</body>
+</html>

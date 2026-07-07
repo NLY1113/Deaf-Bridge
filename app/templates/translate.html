@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Deaf Bridge - AI Translator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div id="canvas-container">
+        <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="output-canvas"></canvas>
+    </div>
+
+    <aside id="control-panel">
+        <h2>Recognition Feedback</h2>
+        <h2 id="sign-output" style="color: #10b981;">Waiting for gestures...</h2>
+
+        <p style="margin-top: 30px; display: flex; flex-direction: column; gap: 12px;">
+            <a href="/" style="color: #6366f1; text-decoration: none; font-weight: bold;">← Back to Main Page</a>
+            <a href="/generator" style="color: #10b981; text-decoration: none; font-weight: bold;">Go to Sign Generator →</a>
+            <a href="/voice-translator" style="color: #10b981; text-decoration: none; font-weight: bold;">Go to Voice Translator 🎤 →</a>
+        </p>
+    </aside>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
