@@ -4,30 +4,26 @@ import joblib
 import numpy as np
 import json
 import pandas as pd
+import gc
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'team_brilliant')
+app.secret_key = os.environ.get('SECRET_KEY', 'default_fallback_key')
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "sign_model.pkl")
 SCALER_PATH = os.path.join(BASE_DIR, "scaler.pkl")
 CSV_FILE = os.path.join(BASE_DIR, "normalized_sign_data.csv")
 
-def get_model():
-    if not hasattr(get_model, "model"):
-        if os.path.exists(MODEL_PATH):
-            get_model.model = joblib.load(MODEL_PATH)
-        else:
-            get_model.model = None
-    return get_model.model
+_cached_model = None
+_cached_scaler = None
 
-def get_scaler():
-    if not hasattr(get_scaler, "scaler"):
-        if os.path.exists(SCALER_PATH):
-            get_scaler.scaler = joblib.load(SCALER_PATH)
-        else:
-            get_scaler.scaler = None
-    return get_scaler.scaler
+def load_ml_models():
+    global _cached_model, _cached_scaler
+    if _cached_model is None or _cached_scaler is None:
+        if os.path.exists(MODEL_PATH) and os.path.exists(SCALER_PATH):
+            _cached_model = joblib.load(MODEL_PATH)
+            _cached_scaler = joblib.load(SCALER_PATH)
+    return _cached_model, _cached_scaler
 
 @app.route('/')
 def index():
@@ -47,19 +43,22 @@ def voice_translator():
 
 @app.route('/translate-sign', methods=['POST'])
 def translate():
-    model = get_model()
-    scaler = get_scaler()
-    if model is None or scaler is None:
-        return jsonify({"status": "error", "message": "ML Model files not found."})
     try:
+        model, scaler = load_ml_models()
+        if model is None or scaler is None:
+            return jsonify({"status": "error", "message": "ML Model files not found."})
+            
         data = request.json
         landmarks_list = data.get('landmarks', [])
         if len(landmarks_list) != 84:
             return jsonify({"status": "error", "message": f"Expected 84 features, got {len(landmarks_list)}"})
+            
         flat_landmarks = np.array(landmarks_list).reshape(1, -1)
         scaled_features = scaler.transform(flat_landmarks)
         prediction = model.predict(scaled_features)[0]
+        
         return jsonify({"status": "success", "translated_text": str(prediction)})
+        
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
@@ -81,8 +80,9 @@ def get_sign_sequence():
         
     if os.path.exists(CSV_FILE):
         try:
-            df = pd.read_csv(CSV_FILE, header=None)
-            matches = df[df[0].astype(str).str.lower() == word]
+            # 使用 engine='c' 以获得最快的读取速度，降低内存开销
+            df = pd.read_csv(CSV_FILE, header=None, engine='c')
+            matches = df[df.iloc[:, 0].astype(str).str.lower() == word]
             if not matches.empty:
                 sequence = matches.iloc[:, 1:].values.tolist()
                 return jsonify({"status": "success", "sequence": sequence})

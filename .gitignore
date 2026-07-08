@@ -13,6 +13,7 @@ dataset_absorber.py
 train.py
 filter_specific_signs.py
 normalize.py
+compress_model.py
 
 .vscode/
 .DS_Store
