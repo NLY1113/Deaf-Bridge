@@ -1,10 +1,11 @@
 import os
-from flask import Flask, render_template, request, jsonify
+import io
 import joblib
 import numpy as np
 import json
 import pandas as pd
 import gc
+from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'default_fallback_key')
@@ -21,8 +22,8 @@ def load_ml_models():
     global _cached_model, _cached_scaler
     if _cached_model is None or _cached_scaler is None:
         if os.path.exists(MODEL_PATH) and os.path.exists(SCALER_PATH):
-            _cached_model = joblib.load(MODEL_PATH)
-            _cached_scaler = joblib.load(SCALER_PATH)
+            _cached_model = joblib.load(MODEL_PATH, mmap_mode='r')
+            _cached_scaler = joblib.load(SCALER_PATH, mmap_mode='r')
     return _cached_model, _cached_scaler
 
 @app.route('/')
@@ -80,7 +81,6 @@ def get_sign_sequence():
         
     if os.path.exists(CSV_FILE):
         try:
-            # 使用 engine='c' 以获得最快的读取速度，降低内存开销
             df = pd.read_csv(CSV_FILE, header=None, engine='c')
             matches = df[df.iloc[:, 0].astype(str).str.lower() == word]
             if not matches.empty:
