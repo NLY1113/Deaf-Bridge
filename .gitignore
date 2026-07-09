@@ -18,7 +18,8 @@ train.py
 filter_specific_signs.py
 normalize.py
 compress_model.py
-app_before change to cloude.py
+app_before_change_to_cloud.py
+
 # --- 新增：防止模型和数据文件被上传 (关键) ---
 *.pkl
 *.json
