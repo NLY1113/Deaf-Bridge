@@ -14,6 +14,7 @@ train.py
 filter_specific_signs.py
 normalize.py
 compress_model.py
+app_before_change_to_cloud.py
 
 .vscode/
 .DS_Store
