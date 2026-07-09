@@ -1,19 +1,29 @@
+# Python 虚拟环境
 .venv/
 venv/
 env/
 
+# 环境变量
 .env
 
+# Python 缓存
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
+# 你的训练脚本和辅助脚本 (如果你不想把这些逻辑推送到 GitHub)
 dataset_absorber.py
 train.py
 filter_specific_signs.py
 normalize.py
 compress_model.py
+app_before change to cloude.py
+# --- 新增：防止模型和数据文件被上传 (关键) ---
+*.pkl
+*.json
+*.csv
 
+# 编辑器和系统文件
 .vscode/
 .DS_Store
