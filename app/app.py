@@ -25,23 +25,23 @@ def load_ml_models():
     global _cached_model, _cached_scaler
     if _cached_model is None or _cached_scaler is None:
         try:
-            # 从云端下载模型数据
-            model_res = requests.get(MODEL_URL, timeout=30)
-            scaler_res = requests.get(SCALER_URL, timeout=30)
+            model_url = "https://storage.googleapis.com/deaf-blind-assistant-bucket/sign_model.pkl"
+            scaler_url = "https://storage.googleapis.com/deaf-blind-assistant-bucket/scaler.pkl"
+            
+            model_res = requests.get(model_url, timeout=30)
+            scaler_res = requests.get(scaler_url, timeout=30)
             
             if model_res.status_code == 200 and scaler_res.status_code == 200:
-                # 使用 io.BytesIO 将二进制内容转换成文件对象，供 joblib 加载
                 _cached_model = joblib.load(io.BytesIO(model_res.content))
                 _cached_scaler = joblib.load(io.BytesIO(scaler_res.content))
             else:
-                print(f"Failed to fetch models. Status: {model_res.status_code}")
+                print(f"DEBUG: Cloud Load Failed. Model Status: {model_res.status_code}, Scaler Status: {scaler_res.status_code}")
                 return None, None
         except Exception as e:
-            print(f"Error loading models from cloud: {e}")
+            print(f"DEBUG: Exception during cloud load: {str(e)}")
             return None, None
             
     return _cached_model, _cached_scaler
-
 @app.route('/')
 def index():
     return render_template('index.html')
